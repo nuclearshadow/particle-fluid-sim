@@ -95,10 +95,9 @@ particle_update :: proc(p : ^Particle, dt : f32) {
 }
 
 particle_apply_forces :: proc(p : ^Particle, others : []Particle) {
-    for _, i in others {
-        other := &others[i]
-        if p^ == other^ { continue }
-        particle_force_particle(p, other)
+    for &other in others {
+        if p^ == other { continue }
+        particle_force_particle(p, &other)
     }
 }
 
@@ -122,8 +121,7 @@ main :: proc() {
     for !rl.WindowShouldClose() {
         dt := rl.GetFrameTime()
 
-        for _, i in particles {
-            p := &particles[i]
+        for &p in particles {
             mouse := rl.GetMousePosition()
             if rl.Vector2Distance(mouse, p.position) < 100 {
                 force : rl.Vector2
@@ -131,17 +129,14 @@ main :: proc() {
                     case rl.IsMouseButtonDown(.LEFT):  force = mouse - p.position
                     case rl.IsMouseButtonDown(.RIGHT): force = p.position - mouse
                 }
-                particle_add_force(p, force * 20)
+                particle_add_force(&p, force * 20)
             }
             BOUNDARY_HEIGHT :: 5
-            particle_apply_forces(p, particles[:])
-            particle_update(p, dt)
-            particle_collide_boundary(p, { 0, -HEIGHT * BOUNDARY_HEIGHT, WIDTH, HEIGHT * (BOUNDARY_HEIGHT+1) })
-            particle_boundary_force(p, { 0, -HEIGHT * BOUNDARY_HEIGHT, WIDTH, HEIGHT * (BOUNDARY_HEIGHT+1) })
+            particle_apply_forces(&p, particles[:])
+            particle_update(&p, dt)
+            particle_collide_boundary(&p, { 0, -HEIGHT * BOUNDARY_HEIGHT, WIDTH, HEIGHT * (BOUNDARY_HEIGHT+1) })
+            particle_boundary_force(&p, { 0, -HEIGHT * BOUNDARY_HEIGHT, WIDTH, HEIGHT * (BOUNDARY_HEIGHT+1) })
         }
-        // for _, i in particles {
-        //     particle := &particles[i]
-        // }
 
         rl.BeginDrawing()
         rl.ClearBackground(rl.Color{ 0x18, 0x18, 0x18, 0xFF })
