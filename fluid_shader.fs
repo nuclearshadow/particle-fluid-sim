@@ -15,6 +15,7 @@ out vec4 finalColor;
 uniform float width;
 uniform float height;
 uniform vec2[1000] particlePositions;
+uniform float[1000] particleSpeeds;
 uniform int particleCount;
 uniform vec4 fluidColor;
 
@@ -25,11 +26,14 @@ float sdCircle(vec2 p, float r)
     return length(p) - r;
 }
 
-float smin( float a, float b, float k )
+// cubic polynomial
+vec2 smin( float a, float b, float k )
 {
-    k *= 1.0/(1.0-sqrt(0.5));
-    float h = max( k-abs(a-b), 0.0 )/k;
-    return min(a,b) - k*0.5*(1.0+h-sqrt(1.0-h*(h-2.0)));
+    float h = 1.0 - min( abs(a-b)/(6.0*k), 1.0 );
+    float w = h*h*h;
+    float m = w*0.5;
+    float s = w*k; 
+    return (a<b) ? vec2(a-s,m) : vec2(b-s,1.0-m);
 }
 
 void main()
@@ -41,11 +45,17 @@ void main()
 
     // NOTE: Implement here your fragment shader code
     float minDist = sdCircle(worldCoord - particlePositions[0], radius);
+    float speed = particleSpeeds[0];
     for (int i = 0; i < particleCount; i++) {
-        minDist = smin(minDist, sdCircle(worldCoord - particlePositions[i], radius), 7.0);
+        vec2 res = smin(minDist, sdCircle(worldCoord - particlePositions[i], radius), 7.0);
+        minDist = res.x;
+        speed = mix(speed, particleSpeeds[i], res.y);
     }
 
-    finalColor = mix(fluidColor, vec4(0.0), step(0.0, minDist));
+    const float speedScale = 0.003;
+    const float edgeBlurRadius = 3.0;
+    finalColor = mix(mix(fluidColor, vec4(1.0), speed * speedScale), vec4(0.0), smoothstep(-edgeBlurRadius, edgeBlurRadius, minDist));
+    // finalColor = mix(vec4(vec3(speed * 0.01), 1.0), vec4(0.0), step(0.0, minDist));
     // finalColor = mix(vec4(0.0, 0.0, 1.0, 1.0), vec4(0.0), step(0.0, minDist));
     // final color is the color from the texture 
     //    times the tint color (colDiffuse)

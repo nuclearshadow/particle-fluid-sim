@@ -140,7 +140,7 @@ main :: proc() {
     shader_width_loc := rl.GetShaderLocation(fluid_shader, "width")
     shader_height_loc := rl.GetShaderLocation(fluid_shader, "height")
     shader_fluid_color_loc := rl.GetShaderLocation(fluid_shader, "fluidColor")
-    fluid_color := rl.ColorNormalize(rl.BLUE)
+    fluid_color := rl.ColorNormalize(rl.DARKBLUE)
     rl.SetShaderValue(fluid_shader, shader_fluid_color_loc, &fluid_color, .VEC4)
 
     rl.SetTargetFPS(60)
@@ -176,8 +176,11 @@ main :: proc() {
         particle_count := PARTICLE_COUNT
         rl.SetShaderValue(fluid_shader, shader_particle_count_loc, &particle_count, .INT)
         for i in 0..<PARTICLE_COUNT {
-            loc := rl.GetShaderLocation(fluid_shader, rl.TextFormat("particlePositions[%i]", i))
-            rl.SetShaderValue(fluid_shader, loc, &particles[i].position, .VEC2)
+            pos_loc := rl.GetShaderLocation(fluid_shader, rl.TextFormat("particlePositions[%i]", i))
+            rl.SetShaderValue(fluid_shader, pos_loc, &particles[i].position, .VEC2)
+            speed_loc := rl.GetShaderLocation(fluid_shader, rl.TextFormat("particleSpeeds[%i]", i))
+            speed := rl.Vector2Length(particles[i].velocity)
+            rl.SetShaderValue(fluid_shader, speed_loc, &speed, .FLOAT)
         }
 
         rl.BeginDrawing()
