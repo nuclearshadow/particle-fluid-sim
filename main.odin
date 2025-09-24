@@ -7,9 +7,9 @@ WIDTH :: 800
 HEIGHT :: 600
 
 PARTICLE_PRESSURE_RADIUS :: 20
-PARTICLE_VISCOSITY_RADIUS :: 20
-PARTICLE_PRESSURE :: 100
-PARTICLE_VISCOSITY :: 50
+PARTICLE_VISCOSITY_RADIUS :: 50
+PARTICLE_PRESSURE :: 200
+PARTICLE_VISCOSITY :: 10
 PARTICLE_COLLISION_FORCE :: 100
 
 PARTICLE_DRAW_RADIUS :: 3
@@ -17,7 +17,7 @@ PARTICLE_COLOR :: rl.BLUE
 
 GRAVITY :: rl.Vector2{ 0, 300 }
 
-PARTICLE_COUNT :: 1000
+PARTICLE_COUNT :: 500
 
 Particle :: struct {
     position : rl.Vector2,
@@ -129,10 +129,26 @@ main :: proc() {
     }
 
     rl.InitWindow(WIDTH, HEIGHT, "Particle Fluid Sim")
+    defer rl.CloseWindow()
+
+    texture := rl.LoadTextureFromImage(rl.GenImageColor(1, 1, rl.WHITE))
+    defer rl.UnloadTexture(texture)
+    fluid_shader := rl.LoadShader(nil, "fluid_shader.fs")
+    defer rl.UnloadShader(fluid_shader)
+
+    shader_particle_count_loc := rl.GetShaderLocation(fluid_shader, "particleCount")
+    shader_width_loc := rl.GetShaderLocation(fluid_shader, "width")
+    shader_height_loc := rl.GetShaderLocation(fluid_shader, "height")
+    shader_fluid_color_loc := rl.GetShaderLocation(fluid_shader, "fluidColor")
+    fluid_color := rl.ColorNormalize(rl.BLUE)
+    rl.SetShaderValue(fluid_shader, shader_fluid_color_loc, &fluid_color, .VEC4)
+
     rl.SetTargetFPS(60)
 
     for !rl.WindowShouldClose() {
         dt := rl.GetFrameTime()
+        width: f32 = auto_cast rl.GetRenderWidth()
+        height: f32 = auto_cast rl.GetRenderHeight()
 
         for &p in particles {
             mouse := rl.GetMousePosition()
@@ -151,16 +167,34 @@ main :: proc() {
             particle_update(&p, dt)
         }
         for &p in particles {
-            particle_collide_boundary(&p, { 0, -HEIGHT * BOUNDARY_HEIGHT, WIDTH, HEIGHT * (BOUNDARY_HEIGHT+1) })
-            particle_boundary_force(&p, { 0, -HEIGHT * BOUNDARY_HEIGHT, WIDTH, HEIGHT * (BOUNDARY_HEIGHT+1) })
+            particle_collide_boundary(&p, { 0, -height * BOUNDARY_HEIGHT, width, height * (BOUNDARY_HEIGHT+1) })
+            particle_boundary_force(&p, { 0, -height * BOUNDARY_HEIGHT, width, height * (BOUNDARY_HEIGHT+1) })
         }
+
+        rl.SetShaderValue(fluid_shader, shader_width_loc, &width, .FLOAT)
+        rl.SetShaderValue(fluid_shader, shader_height_loc, &height, .FLOAT)
+        particle_count := PARTICLE_COUNT
+        rl.SetShaderValue(fluid_shader, shader_particle_count_loc, &particle_count, .INT)
+        for i in 0..<PARTICLE_COUNT {
+            loc := rl.GetShaderLocation(fluid_shader, rl.TextFormat("particlePositions[%i]", i))
+            rl.SetShaderValue(fluid_shader, loc, &particles[i].position, .VEC2)
+        }
+
         rl.BeginDrawing()
         rl.ClearBackground(rl.Color{ 0x18, 0x18, 0x18, 0xFF })
 
-        for particle in particles {
-            rl.DrawCircleV(particle.position, PARTICLE_PRESSURE_RADIUS, rl.ColorAlpha(PARTICLE_COLOR, 0.05))
-            rl.DrawCircleV(particle.position, PARTICLE_DRAW_RADIUS, PARTICLE_COLOR)
-        }
+        // for particle in particles {
+        //     rl.DrawCircleV(particle.position, PARTICLE_PRESSURE_RADIUS, rl.ColorAlpha(PARTICLE_COLOR, 0.05))
+        //     rl.DrawCircleV(particle.position, PARTICLE_DRAW_RADIUS, PARTICLE_COLOR)
+        // }
+        rl.BeginShaderMode(fluid_shader)
+        rl.DrawTexturePro(
+            texture, 
+            rl.Rectangle{ 0, 0, 1, 1 }, 
+            rl.Rectangle{ 0, 0, auto_cast width, auto_cast height }, 
+            rl.Vector2(0), 0, rl.WHITE)
+        
+        rl.EndShaderMode()
 
         rl.DrawFPS(10, 10)
 
