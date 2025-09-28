@@ -18,6 +18,7 @@ uniform vec2[1000] particlePositions;
 uniform float[1000] particleSpeeds;
 uniform int particleCount;
 uniform vec4 fluidColor;
+uniform vec4 highSpeedFluidColor = vec4(1.0);
 
 const float radius = 5.0;
 
@@ -54,7 +55,7 @@ void main()
 
     const float speedScale = 0.003;
     const float edgeBlurRadius = 3.0;
-    finalColor = mix(mix(fluidColor, vec4(1.0), speed * speedScale), vec4(0.0), smoothstep(-edgeBlurRadius, edgeBlurRadius, minDist));
+    finalColor = mix(mix(fluidColor, highSpeedFluidColor, speed * speedScale), vec4(0.0), smoothstep(-edgeBlurRadius, edgeBlurRadius, minDist));
     // finalColor = mix(vec4(vec3(speed * 0.01), 1.0), vec4(0.0), step(0.0, minDist));
     // finalColor = mix(vec4(0.0, 0.0, 1.0, 1.0), vec4(0.0), step(0.0, minDist));
     // final color is the color from the texture 
